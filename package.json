@@ -1,0 +1,35 @@
+{
+	"name": "tcode",
+	"private": true,
+	"version": "0.1.0",
+	"description": "TCode — desktop GUI for the Pi coding agent, built with Electron (derived from Percho)",
+	"license": "Apache-2.0",
+	"author": "liassy",
+	"workspaces": [
+		"packages/*"
+	],
+	"scripts": {
+		"dev": "npm run dev -w packages/desktop",
+		"postinstall": "patch-package",
+		"build": "npm run build -w packages/desktop",
+		"typecheck": "npm run typecheck --workspaces",
+		"test": "npm run test --workspaces --if-present",
+		"dist": "npm run dist -w packages/desktop",
+		"lint": "biome check ."
+	},
+	"engines": {
+		"node": ">=22.19"
+	},
+	"devDependencies": {
+		"@biomejs/biome": "^2.4.0",
+		"patch-package": "^8.0.1"
+	},
+	"allowScripts": {
+		"electron@43.3.0": true,
+		"esbuild@0.25.12": true,
+		"esbuild@0.28.1": true,
+		"electron-winstaller@5.4.0": true,
+		"protobufjs@7.6.5": true,
+		"@google/genai@1.52.0": true
+	}
+}

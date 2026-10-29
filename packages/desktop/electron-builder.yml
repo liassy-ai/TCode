@@ -1,0 +1,90 @@
+appId: cn.yqcc.tcode
+productName: TCode
+copyright: "Copyright © 2026 YQCC (liassy) · Apache-2.0 · Derived from Percho (MIT, © 2026 Jaxton07)"
+extraMetadata:
+  author:
+    name: "YQCC"
+directories:
+  output: dist
+compression: maximum
+npmRebuild: false
+electronFuses:
+  runAsNode: false
+  enableCookieEncryption: true
+  enableNodeOptionsEnvironmentVariable: false
+  enableNodeCliInspectArguments: false
+  enableEmbeddedAsarIntegrityValidation: true
+  onlyLoadAppFromAsar: true
+files:
+  - out/**
+  - package.json
+  - "!node_modules/@tcode"
+  - "!**/*.map"
+  - "!**/*.d.ts"
+  - "!**/*.d.mts"
+  - "!**/*.d.cts"
+  - "!**/node_modules/@mariozechner/clipboard-darwin-*/**"
+  - "!**/node_modules/@mariozechner/clipboard-linux-*/**"
+  - "!**/node_modules/@mariozechner/clipboard-win32-arm64-*/**"
+  - "!**/node_modules/@esbuild/darwin-*/**"
+  - "!**/node_modules/@esbuild/linux-*/**"
+  - "!**/node_modules/@esbuild/win32-arm64/**"
+electronLanguages:
+  - en-US
+  - zh-CN
+asarUnpack:
+  - "**/*.node"
+  - "**/node_modules/esbuild/**"
+  - "**/node_modules/@esbuild/**"
+extraResources:
+  - from: "../../node_modules/@earendil-works/pi-coding-agent/docs"
+    to: "pi-package/docs"
+  - from: "../../node_modules/@earendil-works/pi-coding-agent/examples"
+    to: "pi-package/examples"
+  - from: "../../node_modules/@earendil-works/pi-coding-agent/README.md"
+    to: "pi-package/README.md"
+  - from: "../../node_modules/@earendil-works/pi-coding-agent/CHANGELOG.md"
+    to: "pi-package/CHANGELOG.md"
+  - from: "../../node_modules/@earendil-works/pi-coding-agent/package.json"
+    to: "pi-package/package.json"
+  - from: "../../node_modules/@earendil-works/pi-coding-agent/dist/core/export-html"
+    to: "pi-package/dist/core/export-html"
+  - from: "../../node_modules/@earendil-works/pi-coding-agent/dist/modes/interactive/theme"
+    to: "pi-package/dist/modes/interactive/theme"
+  - from: "../../node_modules/@earendil-works/pi-coding-agent/dist/modes/interactive/assets"
+    to: "pi-package/dist/modes/interactive/assets"
+  - from: "resources/ui-plugins"
+    to: "ui-plugins"
+  - from: "resources/component/component.exe"
+    to: "component/component.exe"
+  - from: "resources/skills"
+    to: "skills"
+  - from: "resources/licenses"
+    to: "licenses"
+mac:
+  category: public.app-category.developer-tools
+  identity: "-"
+  hardenedRuntime: false
+  target:
+    - target: dmg
+      arch: [arm64, x64]
+    - target: zip
+      arch: [arm64, x64]
+  artifactName: tcode-mac-${arch}.${ext}
+win:
+  target:
+    - target: nsis
+      arch: [x64]
+    - target: zip
+      arch: [x64]
+  artifactName: tcode-windows-${arch}.${ext}
+linux:
+  executableName: tcode
+  category: Development
+  target:
+    - target: AppImage
+      arch: [x64]
+  artifactName: tcode-linux-${arch}.${ext}
+nsis:
+  oneClick: false
+  allowToChangeInstallationDirectory: true

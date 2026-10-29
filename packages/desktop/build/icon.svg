@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+  <title>TCode</title>
+  <defs>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="150%">
+      <feDropShadow dx="0" dy="16" stdDeviation="26" flood-color="#18181b" flood-opacity="0.22"/>
+    </filter>
+  </defs>
+  <rect x="72" y="72" width="880" height="880" rx="198" fill="#ffffff" filter="url(#shadow)"/>
+  <rect x="272" y="296" width="480" height="112" rx="56" fill="#18181b"/>
+  <rect x="456" y="372" width="112" height="352" rx="56" fill="#18181b"/>
+</svg>

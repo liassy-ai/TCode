@@ -1,0 +1,26 @@
+export * from "./browser";
+
+export type { BrowserControlRequest, BrowserControlResult, BrowserControlTabInfo } from "./browser-control";
+export * from "./browser-control";
+export * from "./component-licenses";
+export * from "./errors";
+export * from "./extension-dialog";
+export * from "./fs";
+export * from "./ipc";
+export * from "./marquee-motion";
+export * from "./packages";
+export * from "./plugin-notify";
+export * from "./plugin-profile";
+export * from "./pty";
+export * from "./remote-browser";
+export * from "./session";
+export * from "./settings";
+export * from "./sidepane";
+export * from "./skill-invocation";
+export * from "./subagent";
+export * from "./thinking";
+export * from "./todo";
+export * from "./transcript";
+export * from "./ui-plugins";
+export * from "./web-access";
+export * from "./window-presets";
