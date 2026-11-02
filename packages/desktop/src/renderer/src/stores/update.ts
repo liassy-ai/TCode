@@ -117,10 +117,15 @@ export const useUpdateStore = create<UpdateStore>((set, get) => ({
 			const notesText = (extra?.notes ?? "").trim();
 			set({ version, url, status: "available", error: "", minVersion, required, notes: notesText });
 
-			if (notesText)
-				useToastsStore
-					.getState()
-					.pushExtension("info", `新版本 ${version}：${notesText.replace(/\s*\n\s*/g, " ")}`);
+			const headline =
+				notesText
+					.split("\n")
+					.map((line) => line.trim())
+					.find(Boolean) ?? "";
+			const brief = headline.length > 40 ? `${headline.slice(0, 40)}…` : headline;
+			useToastsStore
+				.getState()
+				.pushExtension("info", brief ? `新版本 ${version}：${brief}` : `新版本 ${version} 可用`);
 		};
 		const cur = s.current;
 		if (cur) decide(cur);

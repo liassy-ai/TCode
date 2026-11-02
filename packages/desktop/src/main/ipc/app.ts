@@ -13,6 +13,7 @@ import {
 import { ensureDailyDir } from "../daily";
 import { checkoutBranch, listGitBranches } from "../git";
 import { resolveExistingPath } from "../path-target";
+import { releaseNotesFor } from "../release-notes";
 import { deviceId } from "../service-link";
 import { notifyTest } from "../task-notify";
 import { loadUiState, saveUiState } from "../ui-state";
@@ -22,6 +23,7 @@ import { registerInvokeHandlers } from "./invoke";
 
 export function registerAppIpc(backend: PiBackend): void {
 	registerInvokeHandlers(APP_CHANNELS, {
+		getReleaseNotes: ({ version }) => releaseNotesFor(version),
 		saveFileDialog: async ({ defaultName, content }) => {
 			const window = BrowserWindow.getAllWindows()[0];
 			const options: Electron.SaveDialogOptions = {

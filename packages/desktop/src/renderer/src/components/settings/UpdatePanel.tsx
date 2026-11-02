@@ -46,6 +46,10 @@ export function UpdatePanel() {
 	const showChannels = publishedChannels.length > 0;
 
 	const [showInternal, setShowInternal] = useState(false);
+	const [releaseNotes, setReleaseNotes] = useState<{ version: string; notes: string; url: string } | null>(
+		null,
+	);
+	const [notesLoading, setNotesLoading] = useState(false);
 	const checkTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
 	useEffect(() => {
@@ -100,6 +104,33 @@ export function UpdatePanel() {
 		status === "available" || status === "downloading" || status === "downloaded" ? version : "";
 
 	const internalTarget = showInternal && internalVersion ? internalVersion : "";
+	const targetVersion =
+		(status === "available" && version) || pendingVersion || internalTarget || current || "";
+
+	useEffect(() => {
+		const want = targetVersion.trim();
+		if (!want) {
+			setReleaseNotes(null);
+			return;
+		}
+		let alive = true;
+		setNotesLoading(true);
+		void getPi()
+			.getReleaseNotes({ version: want })
+			.then((res) => {
+				if (alive) setReleaseNotes(res ?? null);
+			})
+			.catch(() => {
+				if (alive) setReleaseNotes(null);
+			})
+			.finally(() => {
+				if (alive) setNotesLoading(false);
+			});
+		return () => {
+			alive = false;
+		};
+	}, [targetVersion]);
+
 	const showInternalTarget =
 		internalTarget !== "" && status !== "available" && internalTarget !== (pendingVersion || current);
 
@@ -178,71 +209,94 @@ export function UpdatePanel() {
 							: null}
 					</div>
 				</div>
-				<div className="mt-10 flex flex-col items-center gap-2">
-					<div className="flex items-center gap-2">
-						{status === "available" ? (
-							<span className="flex items-center gap-1.5 text-[12.5px] font-medium text-ink">
-								{t("settings.newVersionAvailable")}
-								<span className="font-mono text-[22px] font-semibold">v{version}</span>
-								{channelBadge}
+				<div className="relative mt-8 overflow-hidden rounded-[26px] border border-border bg-surface-solid px-8 py-9 shadow-[var(--diff-card-shadow)]">
+					<span
+						aria-hidden="true"
+						className="pointer-events-none absolute inset-0"
+						style={{
+							background:
+								"radial-gradient(120% 88% at 50% -18%, color-mix(in oklab, var(--color-ink) 10%, transparent), transparent 68%)",
+						}}
+					/>
+					<div className="relative flex flex-col items-center gap-5">
+						<span className="inline-flex items-center gap-2 rounded-full border border-border px-3 py-1 text-[11px] tracking-wide text-ink-2">
+							<span
+								className={`size-1.5 rounded-full ${
+									status === "available" || status === "downloaded" ? "bg-ink" : "bg-ink-faint"
+								}`}
+							/>
+							{status === "available" || status === "downloaded"
+								? t("settings.newVersionAvailable")
+								: status === "downloading"
+									? t("settings.downloadUpdate")
+									: t("settings.upToDate")}
+						</span>
+						<div className="flex items-center gap-2.5">
+							<span className="font-mono text-[44px] font-semibold leading-none tracking-tight text-ink">
+								v
+								{status === "available"
+									? version
+									: showInternalTarget
+										? internalTarget
+										: pendingVersion || current || "…"}
 							</span>
-						) : showInternalTarget ? (
-							<span className="flex items-center gap-1.5 text-[12.5px] font-medium text-ink">
-								{t("settings.newVersionAvailable")}
-								<span className="font-mono text-[22px] font-semibold">v{internalTarget}</span>
-								<span className="rounded-md bg-amber-500/15 px-1.5 py-[1px] text-[11px] font-medium text-amber-600">
-									{t("settings.channel.internal")}
-								</span>
-							</span>
-						) : (
-							<span className="font-mono text-[22px] font-semibold text-ink">
-								v{pendingVersion || current || "…"}
-							</span>
-						)}
-					</div>
-					<div className="flex items-center gap-2">
-						{status === "available" ? (
-							<button
-								type="button"
-								className="rounded-lg bg-ink px-3 py-1.5 text-[12.5px] text-on-ink transition-opacity hover:opacity-90"
-								onClick={() => void download()}
-							>
-								{t("settings.downloadUpdate")}
-							</button>
-						) : status === "downloaded" ? (
-							<button
-								type="button"
-								className="rounded-lg bg-ink px-3 py-1.5 text-[12.5px] text-on-ink transition-opacity hover:opacity-90"
-								onClick={() => void install()}
-							>
-								{t("settings.installUpdate")}
-							</button>
+							{channelBadge}
+						</div>
+						{status === "downloading" ? (
+							<div className="w-full max-w-[300px]">
+								<div className="h-1.5 w-full overflow-hidden rounded-full bg-hover">
+									<div
+										className="h-full rounded-full bg-ink transition-[width] duration-200"
+										style={{ width: `${Math.max(2, percent)}%` }}
+									/>
+								</div>
+								<div className="mt-2 text-center font-mono text-[11px] text-ink-faint">{percent}%</div>
+							</div>
 						) : null}
-						{status === "available" ||
-						status === "downloaded" ||
-						status === "downloading" ? null : showInternal && canApplyInternal ? (
-							<button
-								type="button"
-								disabled={applying}
-								className="rounded-lg bg-ink px-3 py-1.5 text-[12.5px] text-on-ink transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
-								onClick={applyInternal}
-							>
-								{applying
-									? t("settings.internalApplying")
-									: internalState === "rejected"
-										? t("settings.internalReapply")
-										: t("settings.internalApply")}
-							</button>
-						) : (
-							<button
-								type="button"
-								disabled={checking}
-								className="rounded-lg border border-border px-3 py-1.5 text-[12.5px] text-ink-2 transition-colors hover:border-border-strong hover:bg-hover disabled:cursor-not-allowed disabled:opacity-60"
-								onClick={checkNow}
-							>
-								{checking ? t("settings.checking") : t("settings.checkUpdate")}
-							</button>
-						)}
+						<div className="flex items-center gap-2.5">
+							{status === "available" ? (
+								<button
+									type="button"
+									className="min-w-[132px] rounded-full bg-ink px-8 py-3 text-[13.5px] font-medium text-on-ink transition-opacity hover:opacity-90"
+									onClick={() => void download()}
+								>
+									{t("settings.downloadUpdate")}
+								</button>
+							) : status === "downloaded" ? (
+								<button
+									type="button"
+									className="min-w-[132px] rounded-full bg-ink px-8 py-3 text-[13.5px] font-medium text-on-ink transition-opacity hover:opacity-90"
+									onClick={() => void install()}
+								>
+									{t("settings.installUpdate")}
+								</button>
+							) : null}
+							{status === "available" ||
+							status === "downloaded" ||
+							status === "downloading" ? null : showInternal && canApplyInternal ? (
+								<button
+									type="button"
+									disabled={applying}
+									className="min-w-[132px] rounded-full bg-ink px-8 py-3 text-[13.5px] font-medium text-on-ink transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
+									onClick={applyInternal}
+								>
+									{applying
+										? t("settings.internalApplying")
+										: internalState === "rejected"
+											? t("settings.internalReapply")
+											: t("settings.internalApply")}
+								</button>
+							) : (
+								<button
+									type="button"
+									disabled={checking}
+									className="rounded-full border border-border px-6 py-2.5 text-[13px] text-ink-2 transition-colors hover:border-border-strong hover:bg-hover disabled:cursor-not-allowed disabled:opacity-60"
+									onClick={checkNow}
+								>
+									{checking ? t("settings.checking") : t("settings.checkUpdate")}
+								</button>
+							)}
+						</div>
 					</div>
 				</div>
 			</div>
@@ -272,19 +326,29 @@ export function UpdatePanel() {
 					<h3 className="text-[13px] font-medium text-ink">{t("settings.updateStatus")}</h3>
 					{status === "available" ? null : <span className="text-[12.5px] text-ink-faint">{statusLine}</span>}
 				</div>
-				{status === "downloading" ? (
-					<div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-hover">
-						<div
-							className="h-full rounded-full bg-ink transition-[width] duration-200"
-							style={{ width: `${Math.max(2, percent)}%` }}
-						/>
-					</div>
-				) : null}
 				{status === "available" && notes ? (
-					<div className="mt-2 whitespace-pre-wrap rounded-lg border border-border bg-surface-solid px-3 py-2 text-[12px] leading-relaxed text-ink-2">
-						{notes}
+					<div className="mt-2 rounded-lg border border-border bg-surface-solid px-3 py-2">
+						<div className="mb-1 text-[11px] text-ink-faint">
+							{t("settings.releaseNotesFor", { version: version ? `v${version}` : "" })}
+						</div>
+						<div className="whitespace-pre-wrap text-[12px] leading-relaxed text-ink-2">{notes}</div>
 					</div>
-				) : null}
+				) : (
+					<div className="mt-2 rounded-lg border border-border bg-surface-solid px-3 py-2">
+						<div className="mb-1 text-[11px] text-ink-faint">
+							{t("settings.releaseNotesFor", { version: targetVersion ? `v${targetVersion}` : "" })}
+						</div>
+						{notesLoading ? (
+							<div className="text-[12px] text-ink-faint">{t("settings.releaseNotesLoading")}</div>
+						) : releaseNotes?.notes ? (
+							<div className="whitespace-pre-wrap text-[12px] leading-relaxed text-ink-2">
+								{releaseNotes.notes}
+							</div>
+						) : (
+							<div className="text-[12px] text-ink-faint">{t("settings.releaseNotesEmpty")}</div>
+						)}
+					</div>
+				)}
 				{required ? (
 					<div className="mt-2 text-[11.5px] text-ink-faint">{t("settings.updateRequired")}</div>
 				) : null}

@@ -326,6 +326,10 @@ export const BOOT_CHANNELS = {
 } as const;
 
 export const APP_CHANNELS = {
+	getReleaseNotes: ch("app:releaseNotes")<
+		{ version: string },
+		{ version: string; notes: string; url: string } | null
+	>(),
 	saveFileDialog: ch("file:saveDialog")<{ defaultName: string; content: string }, string | null>(),
 
 	pickDirectory: ch("project:pickDirectory")<void, string | null>(),

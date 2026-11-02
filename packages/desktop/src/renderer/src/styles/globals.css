@@ -2219,6 +2219,10 @@ body:has(.sidebar:not(.is-collapsed)):has(.sidebar:not(.is-floating)) .app-tab-b
 	font-weight: 500;
 	color: var(--color-ink-2);
 	line-height: 1.45;
+	display: -webkit-box;
+	-webkit-box-orient: vertical;
+	-webkit-line-clamp: 3;
+	overflow: hidden;
 }
 .toast .t-sub {
 	font-size: 11px;
