@@ -85,8 +85,12 @@ win:
 linux:
   executableName: tcode
   category: Development
+  maintainer: "YQCC <liassy@yqcc.cn>"
+  description: TCode desktop client
   target:
     - target: AppImage
+      arch: [x64]
+    - target: deb
       arch: [x64]
   artifactName: tcode-linux-${arch}.${ext}
 nsis:

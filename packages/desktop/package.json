@@ -4,6 +4,7 @@
 	"version": "0.1.226111",
 	"private": true,
 	"description": "Desktop GUI for the Pi coding agent",
+	"homepage": "https://tce.yqcc.cn",
 	"author": "liassy",
 	"license": "Apache-2.0",
 	"type": "module",
