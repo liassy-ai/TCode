@@ -112,7 +112,7 @@ export function ContextRing() {
 			onPointerEnter={(event) => {
 				if (event.pointerType !== "mouse" || hasDraftText) return;
 				cancelOpenTimer();
-				openTimerRef.current = window.setTimeout(() => setOpen(true), 2000);
+				openTimerRef.current = window.setTimeout(() => setOpen(true), 1000);
 			}}
 			onPointerLeave={() => {
 				cancelOpenTimer();

@@ -4,6 +4,7 @@ import { useT } from "../../i18n";
 import { usePluginNotifyStore } from "../../stores/plugin-notify";
 import { useUpdateStore } from "../../stores/update";
 import { BugReportDialog } from "./BugReportDialog";
+import { ReleaseNotes } from "./ReleaseNotes";
 
 export function UpdatePanel() {
 	const t = useT();
@@ -328,21 +329,15 @@ export function UpdatePanel() {
 				</div>
 				{status === "available" && notes ? (
 					<div className="mt-2 rounded-lg border border-border bg-surface-solid px-3 py-2">
-						<div className="mb-1 text-[11px] text-ink-faint">
-							{t("settings.releaseNotesFor", { version: version ? `v${version}` : "" })}
-						</div>
-						<div className="whitespace-pre-wrap text-[12px] leading-relaxed text-ink-2">{notes}</div>
+						<ReleaseNotes text={notes} />
 					</div>
 				) : (
 					<div className="mt-2 rounded-lg border border-border bg-surface-solid px-3 py-2">
-						<div className="mb-1 text-[11px] text-ink-faint">
-							{t("settings.releaseNotesFor", { version: targetVersion ? `v${targetVersion}` : "" })}
-						</div>
 						{notesLoading ? (
 							<div className="text-[12px] text-ink-faint">{t("settings.releaseNotesLoading")}</div>
 						) : releaseNotes?.notes ? (
-							<div className="whitespace-pre-wrap text-[12px] leading-relaxed text-ink-2">
-								{releaseNotes.notes}
+							<div>
+								<ReleaseNotes text={releaseNotes.notes} />
 							</div>
 						) : (
 							<div className="text-[12px] text-ink-faint">{t("settings.releaseNotesEmpty")}</div>

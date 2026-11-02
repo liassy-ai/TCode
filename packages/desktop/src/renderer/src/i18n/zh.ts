@@ -452,7 +452,6 @@ export const zh = {
 			"当前安装的 TCode 版本；有新版本时可直接在这里下载安装。正式版收正式发布，公测版收公测发布（面板指定内测的账号会锁定为内测）。",
 		updateChannel: "更新渠道",
 		updateStatus: "更新状态",
-		releaseNotesFor: "更新内容（{version}）",
 		releaseNotesLoading: "读取中…",
 		releaseNotesEmpty: "暂无该版本的更新内容",
 		upToDate: "已是最新",
