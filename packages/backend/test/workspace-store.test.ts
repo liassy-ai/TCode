@@ -1,0 +1,100 @@
+import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join, resolve } from "node:path";
+import { describe, expect, it } from "vitest";
+import {
+	addAllowedPattern,
+	addWorkspaceRoot,
+	createWorkspacesLoader,
+	emptyWorkspaces,
+	loadWorkspaces,
+	removeWorkspaceRoot,
+	suggestRootCandidate,
+	workspaceConfigPath,
+} from "../src/project/workspace-store";
+
+function makeAgentDir(): string {
+	const dir = mkdtempSync(join(tmpdir(), "pi-ws-"));
+	mkdirSync(dir, { recursive: true });
+	return dir;
+}
+
+describe("workspace-store", () => {
+	it("无文件 → 空配置；写后 roundtrip", () => {
+		const dir = makeAgentDir();
+		expect(loadWorkspaces(dir)).toEqual(emptyWorkspaces());
+		addWorkspaceRoot(dir, "/proj", "/other/repo");
+		expect(loadWorkspaces(dir)).toEqual({
+			version: 1,
+			projects: { [resolve("/proj")]: { roots: [resolve("/other/repo")], allowed: [] } },
+		});
+	});
+
+	it("根去重；移除后空条目回收", () => {
+		const dir = makeAgentDir();
+		addWorkspaceRoot(dir, "/proj", "/other");
+		addWorkspaceRoot(dir, "/proj", "/other");
+		addAllowedPattern(dir, "/proj", "bash: git push*");
+		expect(loadWorkspaces(dir).projects[resolve("/proj")].roots).toEqual([resolve("/other")]);
+		removeWorkspaceRoot(dir, "/proj", "/other");
+		const afterRemove = loadWorkspaces(dir);
+		expect(afterRemove.projects[resolve("/proj")]).toEqual({ roots: [], allowed: ["bash: git push*"] });
+
+		const raw = JSON.parse(readFileSync(workspaceConfigPath(dir), "utf-8"));
+		raw.projects[resolve("/proj")] = { roots: [], allowed: [] };
+		writeFileSync(workspaceConfigPath(dir), JSON.stringify(raw));
+		removeWorkspaceRoot(dir, "/proj", "/nonexistent");
+		expect(loadWorkspaces(dir).projects[resolve("/proj")]).toBeUndefined();
+	});
+
+	it("记忆去重后移到末尾（LRU 语义）；非法文件回退空配置", () => {
+		const dir = makeAgentDir();
+		addAllowedPattern(dir, "/p", "a*");
+		addAllowedPattern(dir, "/p", "b*");
+		addAllowedPattern(dir, "/p", "a*");
+		expect(loadWorkspaces(dir).projects[resolve("/p")].allowed).toEqual(["b*", "a*"]);
+		writeFileSync(workspaceConfigPath(dir), "{broken");
+		expect(loadWorkspaces(dir)).toEqual(emptyWorkspaces());
+	});
+
+	it("mtime 加载器：文件变更后重新读取", () => {
+		const dir = makeAgentDir();
+		const load = createWorkspacesLoader(dir);
+		expect(load()).toEqual(emptyWorkspaces());
+		addWorkspaceRoot(dir, "/proj", "/other");
+		expect(load().projects[resolve("/proj")]).toEqual({ roots: [resolve("/other")], allowed: [] });
+	});
+});
+
+describe("suggestRootCandidate", () => {
+	it("向上找最近 .git 根", () => {
+		const dir = makeAgentDir();
+		const repo = join(dir, "repo");
+		mkdirSync(join(repo, ".git"), { recursive: true });
+		mkdirSync(join(repo, "a", "b"), { recursive: true });
+		const home = join(dir, "home");
+		expect(suggestRootCandidate(join(repo, "a", "b", "f.ts"), home)).toBe(repo);
+	});
+
+	it("无 .git → 父目录；home/home 祖先/根目录绝不作为候选", () => {
+		const dir = makeAgentDir();
+		const home = join(dir, "home");
+		mkdirSync(join(home, "work", "note"), { recursive: true });
+
+		expect(suggestRootCandidate(join(home, "work", "note", "a.md"), home)).toBe(join(home, "work", "note"));
+
+		expect(suggestRootCandidate(join(home, "todo.md"), home)).toBeNull();
+
+		expect(suggestRootCandidate(join(dir, "x.md"), home)).toBeNull();
+		expect(suggestRootCandidate("/f.ts", home)).toBeNull();
+	});
+
+	it("home 下有 .git 也不返回 home（目录而非文件路径的场景同样安全）", () => {
+		const dir = makeAgentDir();
+		const home = join(dir, "home");
+		mkdirSync(join(home, ".git"), { recursive: true });
+		mkdirSync(join(home, "sub"), { recursive: true });
+
+		expect(suggestRootCandidate(join(home, "sub", "x"), home)).toBe(join(home, "sub"));
+	});
+});

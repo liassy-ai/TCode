@@ -1,0 +1,90 @@
+import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { afterEach, describe, expect, it } from "vitest";
+import { discoverAgents, parseAgentMarkdown } from "../src/tools/subagent/agents";
+
+const tempDirs: string[] = [];
+
+afterEach(async () => {
+	await Promise.all(tempDirs.splice(0).map((dir) => rm(dir, { recursive: true, force: true })));
+});
+
+describe("subagent agent definitions", () => {
+	it("parses frontmatter and body", () => {
+		const agent = parseAgentMarkdown(
+			`---\nname: Explore\ndescription: Code Explore\ntools: read, grep, find\nmodel: provider/model # optional\n---\n\nInspect files only.`,
+		);
+		expect(agent).toMatchObject({
+			name: "Explore",
+			description: "Code Explore",
+			tools: ["read", "grep", "find"],
+			model: "provider/model",
+			systemPrompt: "Inspect files only.",
+		});
+	});
+
+	describe("frontmatter thinking（#47）", () => {
+		it("合法档位保留，且不影响 systemPrompt", () => {
+			const agent = parseAgentMarkdown(
+				`---\nname: Explore\ndescription: Code Explore\nthinking: high # 覆盖全局默认\n---\n\nInspect files only.`,
+			);
+			expect(agent).toMatchObject({ thinking: "high", systemPrompt: "Inspect files only." });
+			expect(agent?.thinkingWarning).toBeUndefined();
+		});
+
+		it("非法档位丢弃并带原文警示（不阻断加载）", () => {
+			const agent = parseAgentMarkdown(
+				`---\nname: Explore\ndescription: Code Explore\nthinking: ultra\n---\n\nBody.`,
+			);
+			expect(agent?.thinking).toBeUndefined();
+			expect(agent?.thinkingWarning).toBe("ultra");
+			expect(agent?.systemPrompt).toBe("Body.");
+		});
+
+		it("缺省 thinking 时两项均为 undefined", () => {
+			const agent = parseAgentMarkdown(`---\nname: Explore\ndescription: Code Explore\n---\n\nBody.`);
+			expect(agent?.thinking).toBeUndefined();
+			expect(agent?.thinkingWarning).toBeUndefined();
+		});
+	});
+
+	it("applies builtin → user → trusted project precedence", async () => {
+		const root = await mkdtemp(join(tmpdir(), "tcode-subagent-agents-"));
+		tempDirs.push(root);
+		const agentDir = join(root, "agent");
+		await mkdir(join(agentDir, "agents"), { recursive: true });
+		await mkdir(join(root, ".pi", "agents"), { recursive: true });
+		await writeFile(
+			join(agentDir, "agents", "Explore.md"),
+			"---\nname: Explore\ndescription: user\ntools: read\n---\nuser",
+		);
+		await writeFile(
+			join(root, ".pi", "agents", "Explore.md"),
+			"---\nname: Explore\ndescription: project\ntools: grep\n---\nproject",
+		);
+
+		const trusted = await discoverAgents(root, { agentDir, projectTrusted: true });
+		expect(trusted.find((agent) => agent.name === "Explore")).toMatchObject({
+			description: "project",
+			source: "project",
+		});
+		const untrusted = await discoverAgents(root, { agentDir, projectTrusted: false });
+		expect(untrusted.find((agent) => agent.name === "Explore")).toMatchObject({
+			description: "user",
+			source: "user",
+		});
+	});
+});
+
+describe("isSubagentSessionPath", () => {
+	it("识别 sessions-subagents 目录下的会话文件（防 .. 绕判）", async () => {
+		const { isSubagentSessionPath, subagentSessionsRoot } = await import("../src/tools/subagent");
+		const root = "/tmp/tcode-agent-dir";
+		expect(isSubagentSessionPath(`${root}/sessions-subagents/proj/abc.jsonl`, root)).toBe(true);
+		expect(isSubagentSessionPath(`${root}/sessions/proj/abc.jsonl`, root)).toBe(false);
+		expect(isSubagentSessionPath(`${root}/sessions-subagents/../sessions/x.jsonl`, root)).toBe(false);
+		expect(isSubagentSessionPath(`${root}/sessions-subagents-bogus/x.jsonl`, root)).toBe(false);
+		expect(subagentSessionsRoot(root)).toBe(join(root, "sessions-subagents"));
+	});
+});
